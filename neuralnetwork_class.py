@@ -25,7 +25,7 @@ def dispatch_dict(method, sum_of_weights):
     return {
 
         'vimatoeidis': lambda: vimatoeidis( sum_of_weights ),
-        'sigmoeidis':  lambda: sigmoeidis( sum_of_weights ),
+        'sigmoeidis': lambda: sigmoeidis( sum_of_weights ),
 
     }.get( method, lambda: None )()
 
@@ -33,7 +33,7 @@ def dispatch_dict(method, sum_of_weights):
 class NeuralNetwork:
 
     def __init__(self, Z, d, table, O_array):
-        self.neurons = []
+        self.neurons = list()
         self.table = np.array( table )
         self.o_array = np.array( O_array )
         self.Z = Z
@@ -49,10 +49,15 @@ class NeuralNetwork:
         self.b = None
         self.method = None
 
+
     def initialize_array_of_weights(self):
+
         for neuron in self.neurons:
             for dendrites in neuron.get_dendrites():
                 self.array_of_weights = np.concatenate( (self.array_of_weights, dendrites.get_value()), axis=None )
+
+
+        #self.array_of_weights = [np.concatenate( (self.array_of_weights, dendrite.get_value()), axis=None ) for neuron in self.neurons for dendrite in neuron.get_dendrites() ]
 
 
         for _ in self.array_of_weights:
@@ -77,30 +82,28 @@ class NeuralNetwork:
     def create_header(self):
 
         header = []
-        for i, _ in enumerate(self.array_of_weights):
-            header.append(f'---X{i}---|')
+        for i, _ in enumerate( self.array_of_weights ):
+            header.append( f'---X{i}---|' )
 
         for i, _ in enumerate( self.array_of_weights ):
-            header.append(f'---W{i}---|')
+            header.append( f'---W{i}---|' )
 
-        header.append(f'---S---|')
-        header.append(f'---a---|')
-        header.append(f'---o---|')
+        header.append( f'---S---|' )
+        header.append( f'---a---|' )
+        header.append( f'---o---|' )
 
         for i, _ in enumerate( self.array_of_weights ):
-            header.append(f'---DW{i}---|')
+            header.append( f'---DW{i}---|' )
 
         if self.method == "sigmoeidis":
-            header.append(f'---(a-o)^2)---|')
-            header.append(f'---sum((a-o)^2))---|')
-            header.append(f'---S|w|---|')
+            header.append( f'---(a-o)^2)---|' )
+            header.append( f'---sum((a-o)^2))---|' )
+            header.append( f'---S|w|---|' )
 
-
-        return [' '.join(head) for head in header]
-
+        return [''.join( head ) for head in header]
 
     def add_neuron(self):
-        self.neurons.append( NeuralNetwork.Neuron( self.table.shape[1] ) )
+        self.neurons.append( NeuralNetwork.Neuron() )
 
     def sum(self, array_with_z, ):
         S = 0
@@ -114,7 +117,7 @@ class NeuralNetwork:
         self.b = np.array( [[]] )
 
     def sigmoeidis_function(self):
-        global sum_of_squared
+        global SUM_OF_SQUARED
         self.initialize_array_of_weights()
         Queue = list()
         self.method = "sigmoeidis"
@@ -143,7 +146,7 @@ class NeuralNetwork:
                 self.Tmp_Array = np.concatenate( (self.Tmp_Array, [x]), axis=None )
                 self.Tmp_Array = np.concatenate( (self.Tmp_Array, [self.o_array[counter]]), axis=None )
 
-                self.delta_rule( x,counter)
+                self.delta_rule( x, counter )
                 self.append_previous_weight_array()
 
                 self.Tmp_Array = np.concatenate( (self.Tmp_Array, self.array_of_DW), axis=None )
@@ -153,32 +156,29 @@ class NeuralNetwork:
 
                 self.Tmp_Array = np.concatenate( (self.Tmp_Array, [error_squared]), axis=None )
 
-                sum_of_squared = sumOfList( Queue, len( Queue ) )
+                SUM_OF_SQUARED = sumOfList( Queue, len( Queue ) )
 
-                self.Tmp_Array = np.concatenate( (self.Tmp_Array, sum_of_squared), axis=None )
+                self.Tmp_Array = np.concatenate( (self.Tmp_Array, SUM_OF_SQUARED), axis=None )
 
-                SW = [math.fabs(weight) for weight in self.array_of_weights]
-                self.Tmp_Array = np.concatenate( (self.Tmp_Array, [sum(SW)]), axis=None )
+                SW = [math.fabs( weight ) for weight in self.array_of_weights]
+                self.Tmp_Array = np.concatenate( (self.Tmp_Array, [sum( SW )]), axis=None )
 
-                if len(Queue) > 3:
-                    Queue.pop(0)
+                if len( Queue ) > 3:
+                    Queue.pop( 0 )
 
                 if self.arr is None:
                     self.arr = np.array( [self.Tmp_Array] )
                 else:
                     self.arr = np.insert( self.arr, len( self.arr ), [self.Tmp_Array], axis=0 )
 
-            if sum_of_squared <= 0.001:
+            if SUM_OF_SQUARED <= 0.001:
                 break
-
 
         print( f"A solution has been found in {int( len( self.arr ) / 4 )} seasons and the final weights are:" )
         print( self.array_of_weights )
 
-
         with open( 'results.txt', 'w' ) as f:
-            np.savetxt( f, self.arr, header=str( self.create_header()), fmt="%f", comments='' )
-
+            np.savetxt( f, self.arr, header=str( self.create_header() ), fmt="%f", comments='' )
 
     def vimatoeidis_function(self):
 
@@ -208,7 +208,7 @@ class NeuralNetwork:
                 self.Tmp_Array = np.concatenate( (self.Tmp_Array, [x]), axis=None )
                 self.Tmp_Array = np.concatenate( (self.Tmp_Array, [self.o_array[counter]]), axis=None )
 
-                self.delta_rule( x, counter)
+                self.delta_rule( x, counter )
                 self.append_previous_weight_array()
 
                 self.Tmp_Array = np.concatenate( (self.Tmp_Array, self.array_of_DW), axis=None )
@@ -218,7 +218,6 @@ class NeuralNetwork:
                 else:
                     self.arr = np.insert( self.arr, len( self.arr ), [self.Tmp_Array], axis=0 )
 
-
             if np.array_equal( self.a, self.b ) or np.array_equal( self.new_seasons_weight_array,
                                                                    self.last_seasons_weight_array ):
                 break
@@ -226,21 +225,19 @@ class NeuralNetwork:
         print( f"A solution has been found in {int( len( self.arr ) / 4 )} seasons and the final weights are:" )
         print( self.array_of_weights )
 
-
-
         with open( 'results.txt', 'w' ) as f:
-            np.savetxt( f, self.arr, header=str( self.create_header()), fmt="%f", comments='' )
+            np.savetxt( f, self.arr, header=str( self.create_header() ), fmt="%f", comments='' )
 
     def delta_rule(self, A, x):
 
         tmp = np.array( [[]] )
 
-        for i, z in enumerate( self.array_with_z):
+        for i, z in enumerate( self.array_with_z ):
 
             if self.method == "vimatoeidis":
                 self.array_of_DW[i] = self.d * (A - self.o_array[x]) * z * (-1)
             elif self.method == "sigmoeidis":
-                self.array_of_DW[i] = self.d * (A - self.o_array[x]) * z * A * (1-A) * (-1)
+                self.array_of_DW[i] = self.d * (A - self.o_array[x]) * z * A * (1 - A) * (-1)
 
         for i, (weight, DW) in enumerate( zip( self.array_of_weights, self.array_of_DW ) ):
             tmp = np.concatenate( (tmp, [weight]), axis=None )
@@ -257,23 +254,28 @@ class NeuralNetwork:
         [neuron.print_neuron_info() for neuron in self.neurons]
 
     class Neuron:
-        def __init__(self, dendrite_number):
+        def __init__(self):
             self.dendrites = []
-            self.add_dendrite()
-            [self.add_dendrite() for _ in range( dendrite_number )]
 
-        def add_dendrite(self):
-            self.dendrites.append( NeuralNetwork.Neuron.Dendrites() )
+        def connect_z_with_neuron(self, Name, Value=None):
+            self.dendrites.append( NeuralNetwork.Neuron.Dendrites( Name, Value ) )
+
+        def add_dendrite(self, Name, Value=None):
+            self.dendrites.append( NeuralNetwork.Neuron.Dendrites( Name, Value ) )
 
         def print_neuron_info(self):
             [print( f"{dendrite.value}" ) for dendrite in self.dendrites]
 
         def get_dendrites(self):
-            return self.dendrites
+            return [x for x in self.dendrites]
 
         class Dendrites:
-            def __init__(self):
-                self.value = random.random()
+            def __init__(self, Name, value=None):
+                self.name = Name
+                if value is None:
+                    self.value = random.random()
+                else:
+                    self.value = value
 
             def get_value(self):
                 return self.value
