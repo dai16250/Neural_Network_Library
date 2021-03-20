@@ -25,6 +25,7 @@ def main():
     NeuralNetwork_1.neurons[1].add_dendrite('W24')
     NeuralNetwork_1.neurons[1].connect_z_with_neuron('W04')
 
+    NeuralNetwork_1.neurons[0].create_connection('-->', NeuralNetwork_1.neurons[1])
 
     NeuralNetwork_1.sigmoeidis_function()
 

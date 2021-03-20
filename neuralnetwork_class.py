@@ -49,16 +49,13 @@ class NeuralNetwork:
         self.b = None
         self.method = None
 
-
     def initialize_array_of_weights(self):
 
         for neuron in self.neurons:
             for dendrites in neuron.get_dendrites():
                 self.array_of_weights = np.concatenate( (self.array_of_weights, dendrites.get_value()), axis=None )
 
-
-        #self.array_of_weights = [np.concatenate( (self.array_of_weights, dendrite.get_value()), axis=None ) for neuron in self.neurons for dendrite in neuron.get_dendrites() ]
-
+        # self.array_of_weights = [np.concatenate( (self.array_of_weights, dendrite.get_value()), axis=None ) for neuron in self.neurons for dendrite in neuron.get_dendrites() ]
 
         for _ in self.array_of_weights:
             self.array_of_DW = np.concatenate( (self.array_of_DW, 0), axis=None )
@@ -256,9 +253,35 @@ class NeuralNetwork:
     class Neuron:
         def __init__(self):
             self.dendrites = []
+            self.connections = None
 
         def connect_z_with_neuron(self, Name, Value=None):
-            self.dendrites.append( NeuralNetwork.Neuron.Dendrites( Name, Value ) )
+            if self.dendrites is None:
+                self.dendrites = list( [NeuralNetwork.Neuron.Dendrites( Name, Value )] )
+            else:
+                self.dendrites.append( NeuralNetwork.Neuron.Dendrites( Name, Value ) )
+
+        def create_connection(self, operator, connected_neuron):
+            operator_list = list(['-->', '<--'])
+
+
+            if not isinstance( connected_neuron, NeuralNetwork.Neuron ):
+                raise TypeError( f"The object is {type( connected_neuron )} and it must be a {NeuralNetwork.Neuron}" )
+            elif operator not in operator_list:
+                raise ValueError( f"The operator must be either '-->' or '<--' where the arrow shows the direction of the weight" )
+            else:
+                if operator == '<--':
+                    passive_neuron, active_neuron = self, connected_neuron
+                else:
+                    passive_neuron, active_neuron = connected_neuron, self
+
+                if passive_neuron.connections is None:
+                    passive_neuron.connections = list( [active_neuron] )
+                else:
+                    passive_neuron.connections.append( active_neuron )
+
+        def add_connections(self):
+            pass
 
         def add_dendrite(self, Name, Value=None):
             self.dendrites.append( NeuralNetwork.Neuron.Dendrites( Name, Value ) )
