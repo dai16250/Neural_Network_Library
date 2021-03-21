@@ -30,6 +30,27 @@ def dispatch_dict(method, sum_of_weights):
     }.get( method, lambda: None )()
 
 
+def correct_connection(neuron_1, operator, neuron_2):
+    """
+
+    :param operator:    The operator of the connection either ("<--","-->") where the direction of the arrow shows where the connection takes place
+    :param neuron_1:    Neuron_1 is one of the two neurons that are questioned to have operation to take place
+    :param neuron_2:    Neuron_2 is one of the two neurons that are questioned to have operation to take place
+    :return:            It returns the correct direction where the connection takes place
+
+    e.g :               correct_connection("<--", neuron_1 , neuron_2)
+                        neuron_1 <-- neuron_2
+                        that means: neuron_1 expects a weight from neuron_2
+    """
+    return {
+
+        '<--': lambda: (neuron_1, neuron_2),
+        '-->': lambda: (neuron_2, neuron_1),
+
+    }.get( operator, lambda: None )()
+
+
+
 class NeuralNetwork:
 
     def __init__(self, Z, d, table, O_array):
@@ -77,8 +98,7 @@ class NeuralNetwork:
                                                         len( self.last_seasons_weight_array ) - 1, tmp, axis=0 )
 
     def create_header(self):
-
-        header = []
+        header = list()
         for i, _ in enumerate( self.array_of_weights ):
             header.append( f'---X{i}---|' )
 
@@ -97,16 +117,15 @@ class NeuralNetwork:
             header.append( f'---sum((a-o)^2))---|' )
             header.append( f'---S|w|---|' )
 
-        return [''.join( head ) for head in header]
+        return ''.join( str( head ) for head in header )
 
     def add_neuron(self):
         self.neurons.append( NeuralNetwork.Neuron() )
 
-    def sum(self, array_with_z, ):
+    def sum_of_weights(self, array_with_z):
         S = 0
-        for i, weigh in enumerate( self.array_of_weights ):
-            S += weigh * array_with_z[i]
-        self.Tmp_Array = np.concatenate( (self.Tmp_Array, [S]), axis=None )
+        final_sum = sum( [S := S + weigh * array_with_z[i] for i, weigh in enumerate( self.array_of_weights )] )
+        self.Tmp_Array = np.concatenate( (self.Tmp_Array, [final_sum]), axis=None )
         return S
 
     def initialize_a_b(self):
@@ -116,6 +135,7 @@ class NeuralNetwork:
     def sigmoeidis_function(self):
         global SUM_OF_SQUARED
         self.initialize_array_of_weights()
+
         Queue = list()
         self.method = "sigmoeidis"
 
@@ -133,7 +153,7 @@ class NeuralNetwork:
                 self.Tmp_Array = np.array( self.array_with_z )
                 self.Tmp_Array = np.concatenate( (self.Tmp_Array, self.array_of_weights), axis=None )
 
-                S = self.sum( self.array_with_z )
+                S = self.sum_of_weights( self.array_with_z )
 
                 x = dispatch_dict( self.method, S )
 
@@ -195,7 +215,7 @@ class NeuralNetwork:
                 self.Tmp_Array = np.array( self.array_with_z )
                 self.Tmp_Array = np.concatenate( (self.Tmp_Array, self.array_of_weights), axis=None )
 
-                S = self.sum( self.array_with_z )
+                S = self.sum_of_weights( self.array_with_z )
 
                 x = dispatch_dict( self.method, S )
 
@@ -226,9 +246,7 @@ class NeuralNetwork:
             np.savetxt( f, self.arr, header=str( self.create_header() ), fmt="%f", comments='' )
 
     def delta_rule(self, A, x):
-
         tmp = np.array( [[]] )
-
         for i, z in enumerate( self.array_with_z ):
 
             if self.method == "vimatoeidis":
@@ -252,8 +270,12 @@ class NeuralNetwork:
 
     class Neuron:
         def __init__(self):
-            self.dendrites = []
+            self.dendrites = None
             self.connections = None
+            self.final_weight = None
+
+        def initialize_the_weights_of_the_neuron(self):
+            self.final_weight = [dendrite for dendrite in self.dendrites]
 
         def connect_z_with_neuron(self, Name, Value=None):
             if self.dendrites is None:
@@ -261,44 +283,59 @@ class NeuralNetwork:
             else:
                 self.dendrites.append( NeuralNetwork.Neuron.Dendrites( Name, Value ) )
 
-        def create_connection(self, operator, connected_neuron):
-            operator_list = list(['-->', '<--'])
-
+        def create_connection(self, operator, connected_neuron, name, Value=None):
+            operator_list = list( ['-->', '<--'] )
 
             if not isinstance( connected_neuron, NeuralNetwork.Neuron ):
                 raise TypeError( f"The object is {type( connected_neuron )} and it must be a {NeuralNetwork.Neuron}" )
             elif operator not in operator_list:
-                raise ValueError( f"The operator must be either '-->' or '<--' where the arrow shows the direction of the weight" )
+                raise ValueError(
+                    f"The operator must be either '-->' or '<--' where the arrow shows the direction of the weight" )
             else:
-                if operator == '<--':
-                    passive_neuron, active_neuron = self, connected_neuron
-                else:
-                    passive_neuron, active_neuron = connected_neuron, self
+
+                passive_neuron, active_neuron = correct_connection( self, operator, connected_neuron )
 
                 if passive_neuron.connections is None:
                     passive_neuron.connections = list( [active_neuron] )
                 else:
                     passive_neuron.connections.append( active_neuron )
 
-        def add_connections(self):
-            pass
+                passive_neuron.connect_neruon_with_dendrite( name, Value )
 
         def add_dendrite(self, Name, Value=None):
-            self.dendrites.append( NeuralNetwork.Neuron.Dendrites( Name, Value ) )
+            if self.dendrites is None:
+                self.dendrites = list( [NeuralNetwork.Neuron.Dendrites( Name, Value )] )
+            else:
+                self.dendrites.append( NeuralNetwork.Neuron.Dendrites( Name, Value ) )
+
+        def connect_neruon_with_dendrite(self, Name, Value=None):
+            if self.dendrites is None:
+                self.dendrites = list( [NeuralNetwork.Neuron.GivenDendrites( Name, Value )] )
+            else:
+                self.dendrites.append( NeuralNetwork.Neuron.GivenDendrites( Name, Value ) )
 
         def print_neuron_info(self):
+            print( f"-------{self}-------" )
             [print( f"{dendrite.value}" ) for dendrite in self.dendrites]
 
         def get_dendrites(self):
-            return [x for x in self.dendrites]
+            if self.dendrites is not None:
+                return [x for x in self.dendrites]
+            return None
 
         class Dendrites:
             def __init__(self, Name, value=None):
                 self.name = Name
-                if value is None:
-                    self.value = random.random()
-                else:
-                    self.value = value
+                self.value = random.random() if value is None else value
 
             def get_value(self):
                 return self.value
+
+            def set_value(self, value):
+                self.value = value
+
+        class GivenDendrites( Dendrites ):
+            def __init__(self, Name, value=None):
+                super().__init__(Name, value)
+
+
